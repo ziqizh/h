@@ -4,15 +4,23 @@
   {% include "h:templates/includes/logo-header.html.jinja2" %}
 {% endblock %}
 
-{% block page_title %}Authorize{% endblock %}
+{% block page_title %}Authorize application{% endblock %}
 
 {% block content %}
   <div class="form-container content">
-    <h1 class="form-header">Authorize {{ client_name }}</h1>
-    {{ client_name }} wants to read and modify your Hypothesis annotations.
+    <h2>Authorize app?</h2>
+    <p>
+      <b>{{ client_name }}</b> wants to read and update data
+      in your Hypothesis account <b>{{ username }}</b>.
+    </p>
 
-    <form class="form" method="POST">
-      <button class="btn">Continue as {{ username }}</button>
+    <form class="form js-authorize-form" method="POST">
+      <div class="form-actions">
+        <div class="form-actions__buttons">
+          <button type="submit" class="btn" data-ref="acceptBtn">Accept</button>
+          <button type="button" class="btn btn--cancel" data-ref="cancelBtn">Cancel</button>
+        </div>
+      </div>
 
       {# Parameters from the initial request #}
       <input type="hidden" name="response_mode" value="{{ response_mode }}">
