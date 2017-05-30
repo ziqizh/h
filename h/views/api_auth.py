@@ -2,6 +2,9 @@
 
 from __future__ import unicode_literals
 
+from urlparse import urlparse, parse_qs, urlunparse
+from urllib import urlencode
+
 from pyramid.httpexceptions import HTTPBadRequest, HTTPFound
 from pyramid.view import view_config, view_defaults
 
@@ -10,8 +13,7 @@ from h.util.view import cors_json_view
 from h.util.datetime import utc_iso8601
 
 
-@view_defaults(route_name='authorize',
-               renderer='h:templates/accounts/authorize.html.jinja2')
+@view_defaults(route_name='authorize')
 class AuthorizeController(object):
 
     def __init__(self, request):
@@ -19,7 +21,8 @@ class AuthorizeController(object):
         self.oauth_svc = self.request.find_service(name='oauth')
         self.user_svc = self.request.find_service(name='user')
 
-    @view_config(request_method='GET')
+    @view_config(request_method='GET',
+                 renderer='h:templates/oauth/authorize.html.jinja2')
     def get(self):
         """
         Check the user's authentication status and present the authorization
@@ -44,11 +47,15 @@ class AuthorizeController(object):
                 'state': params.get('state')}
 
     @view_config(request_method='POST',
-                 renderer='h:templates/accounts/post_authorize.html.jinja2')
+                 renderer='h:templates/oauth/post_authorize.html.jinja2')
     def post(self):
         """
         Process an authentication request and return a grant token to the
         client.
+
+        Depending on the "response_mode" parameter the grant token will be
+        delivered either via query or fragment parameters in a redirect or via
+        a `postMessage` call to the opening window.
         """
         authclient = self._check_params()
 
@@ -63,9 +70,15 @@ class AuthorizeController(object):
         else:
             redirect_uri = params['redirect_uri']
 
-            # TODO - Append the grant token param to the URL.
-            # Depending on the `response_mode` param this should be added as
-            # either a query string parameter or a fragment.
+            auth_params = {'code': grant_token}
+            if params.get('state'):
+                auth_params['state'] = params.get('state')
+
+            if params['response_mode'] == 'query':
+                redirect_uri = _update_query(redirect_uri, auth_params)
+            else:
+                auth_frag = urlencode(auth_params)
+                redirect_uri = _update_fragment(redirect_uri, auth_frag)
 
             raise HTTPFound(location=redirect_uri)
 
@@ -92,6 +105,8 @@ class AuthorizeController(object):
             if redirect_uri is None:
                 err = '"redirect_uri" must be specified when response_mode is "query" or "fragment"'
                 raise HTTPBadRequest(err)
+
+            # TODO - Get the `redirect_uri` from the AuthClient.
             if redirect_uri != 'http://localhost:4000/index.html':
                 err = 'Redirect URI "{}" not valid for client'.format(redirect_uri)
                 raise HTTPBadRequest(err)
@@ -99,6 +114,7 @@ class AuthorizeController(object):
             origin = params.get('origin')
             if origin is None:
                 raise HTTPBadRequest('"origin" must be specified when response_mode is "web_message"')
+            # TODO - Get the `origin` from the AuthClient.
             if origin != 'http://localhost:4000':
                 err = 'Origin "{}" not valid for client'.format(origin)
                 raise HTTPBadRequest(err)
@@ -106,6 +122,25 @@ class AuthorizeController(object):
             raise HTTPBadRequest('Unsupported response mode "{}"'.format(response_mode))
 
         return authclient
+
+
+def _update_query(uri, query):
+    """
+    Update the query string in a `uri` with values from ` query` dict.
+    """
+    (scheme, netloc, path, params, q, frag) = urlparse(uri)
+    q_dict = parse_qs(q)
+    q_dict.update(query)
+    new_qs = urlencode(q_dict)
+    return urlunparse((scheme, netloc, path, params, new_qs, frag))
+
+
+def _update_fragment(uri, fragment):
+    """
+    Replace the `fragment` part of a `uri`.
+    """
+    (scheme, netloc, path, params, query, _) = urlparse(uri)
+    return urlunparse((scheme, netloc, path, params, query, fragment))
 
 
 @cors_json_view(route_name='token', request_method='POST')
