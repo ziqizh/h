@@ -37,10 +37,16 @@ class AuthorizeFormController extends Controller {
     }
 
     if (window.opener) {
+      let state;
+      if (this.refs.stateInput) {
+        state = this.refs.stateInput.value;
+      }
+
       // Since this message contains no private data, just set the origin to
       // '*' (any).
       window.opener.postMessage({
         type: 'authorization_canceled',
+        state,
       }, '*');
     }
   }
