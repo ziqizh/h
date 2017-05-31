@@ -22,6 +22,9 @@ from h import __version__
 # that was published to npm.
 DEFAULT_CLIENT_URL = 'https://cdn.hypothes.is/hypothesis'
 
+# Default OAuth Client ID for the client.
+DEFAULT_CLIENT_ID = 'c622f70e-452e-11e7-8035-a7db3310f162'
+
 
 def _client_url(request):
     """
@@ -49,6 +52,7 @@ def sidebar_app(request, extra=None):
     app_config = {
         'apiUrl': request.route_url('api.index'),
         'authDomain': request.authority,
+        'oauthClientId': DEFAULT_CLIENT_ID,
         'release': __version__,
         'serviceUrl': request.route_url('index'),
     }
