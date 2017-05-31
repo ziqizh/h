@@ -167,6 +167,7 @@ def links(context, request):
         'groups.leave': group_leave_url,
         'groups.new': request.route_url('group_create'),
         'help': request.route_url('help'),
+        'oauth.authorize': request.route_url('authorize'),
         'search.tag': tag_search_url,
         'signup': request.route_url('signup'),
         'user': user_url,
