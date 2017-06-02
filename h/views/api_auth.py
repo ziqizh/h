@@ -115,7 +115,10 @@ class AuthorizeController(object):
             if origin is None:
                 raise HTTPBadRequest('"origin" must be specified when response_mode is "web_message"')
             # TODO - Get the `origin` from the AuthClient.
-            if origin != 'http://localhost:4000':
+            client_origins = ['http://localhost:4000',
+                              'http://localhost:5000',
+                              'chrome-extension://lhieaifenniokmcmfdcgabhbnjmelchg']
+            if origin not in client_origins:
                 err = 'Origin "{}" not valid for client'.format(origin)
                 raise HTTPBadRequest(err)
         else:
