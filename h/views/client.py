@@ -52,8 +52,11 @@ def sidebar_app(request, extra=None):
     app_config = {
         'apiUrl': request.route_url('api.index'),
         'authDomain': request.authority,
-        'authUrl': request.route_url('authorize'),
-        'oauthClientId': DEFAULT_CLIENT_ID,
+        'oauth': {
+            'clientId': DEFAULT_CLIENT_ID,
+            'authUrl': request.route_url('oauth_authorize'),
+            'tokenUrl': request.route_url('oauth_token'),
+        },
         'release': __version__,
         'serviceUrl': request.route_url('index'),
     }

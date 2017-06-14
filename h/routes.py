@@ -89,9 +89,10 @@ def includeme(config):
     config.add_route('api.debug_token', '/api/debug-token')
     config.add_route('api.search', '/api/search')
     config.add_route('api.users', '/api/users')
-    config.add_route('authorize', '/oauth/authorize')
     config.add_route('badge', '/api/badge')
     config.add_route('token', '/api/token')
+    config.add_route('oauth_authorize', '/oauth/authorize')
+    config.add_route('oauth_token', '/oauth/token')
 
     # Client
     config.add_route('session', '/app')

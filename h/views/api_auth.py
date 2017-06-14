@@ -12,9 +12,17 @@ from h.exceptions import OAuthTokenError
 from h.util.view import cors_json_view
 from h.util.datetime import utc_iso8601
 
+# Hardcoded list of origins for "trusted" clients.
+# In the actual implementation, this will be registered in the DB.
+TRUSTED_ORIGINS = ['http://localhost:4000',
+                   'http://localhost:5000',
+                   'chrome-extension://lhieaifenniokmcmfdcgabhbnjmelchg']
 
-@view_defaults(route_name='authorize')
-class AuthorizeController(object):
+TRUSTED_CLIENT_IDS = ['c622f70e-452e-11e7-8035-a7db3310f162']
+
+
+@view_defaults(route_name='oauth_authorize')
+class OAuthAuthorizeController(object):
 
     def __init__(self, request):
         self.request = request
@@ -114,17 +122,63 @@ class AuthorizeController(object):
             origin = params.get('origin')
             if origin is None:
                 raise HTTPBadRequest('"origin" must be specified when response_mode is "web_message"')
-            # TODO - Get the `origin` from the AuthClient.
-            client_origins = ['http://localhost:4000',
-                              'http://localhost:5000',
-                              'chrome-extension://lhieaifenniokmcmfdcgabhbnjmelchg']
-            if origin not in client_origins:
+            if origin not in TRUSTED_ORIGINS:
                 err = 'Origin "{}" not valid for client'.format(origin)
                 raise HTTPBadRequest(err)
         else:
             raise HTTPBadRequest('Unsupported response mode "{}"'.format(response_mode))
 
         return authclient
+
+
+@cors_json_view(request_method='POST', route_name='oauth_token')
+def oauth_token(request):
+    """
+    Process an OAuth token request from a trusted client.
+
+    Trusted clients can retrieve access credentials automatically if the
+    user is logged into the web service.
+
+    This endpoint allows CORS requests but only from the pre-registered
+    origin that matches the client ID.
+    """
+
+    oauth_svc = request.find_service(name='oauth')
+    user_svc = request.find_service(name='user')
+
+    # Check that client ID valid and that client is trusted to use implicit
+    # authorization.
+    client_id = request.POST.get('client_id')
+    if client_id is None:
+        raise OAuthTokenError('client_id parameter missing',
+                              'invalid_clientid',
+                              400)
+
+    authclient = oauth_svc._get_authclient_by_id(client_id)
+    if not authclient:
+        raise OAuthTokenError('Client ID "{}" is not registered'.format(client_id),
+                              'invalid_clientid', 400)
+    if client_id not in TRUSTED_CLIENT_IDS:
+        raise OAuthTokenError('Client is not trusted for implicit authorization',
+                              'untrusted_client', 400)
+
+    # Verify request came from client by checking "Origin" header against
+    # pre-registered origin associated with client.
+    origin = request.headers.get('origin')
+    if origin not in TRUSTED_ORIGINS:
+        raise OAuthTokenError(('Request origin "{}" does not match '
+                               'registered origin for client').format(origin),
+                              'invalid_origin',
+                              400)
+
+    # Check that the user is logged in to website, based on the session cookie
+    # included with the request.
+    if not request.authenticated_userid:
+        raise OAuthTokenError('User not authenticated',
+                              'unauthenticated_user', 403)
+
+    user = user_svc.fetch(request.authenticated_userid)
+    return _access_token_response(oauth_svc, user, authclient)
 
 
 def _update_query(uri, query):
@@ -149,22 +203,8 @@ def _update_fragment(uri, fragment):
 @cors_json_view(route_name='token', request_method='POST')
 def access_token(request):
     svc = request.find_service(name='oauth')
-
     user, authclient = svc.verify_token_request(request.POST)
-    token = svc.create_token(user, authclient)
-
-    response = {
-        'access_token': token.value,
-        'token_type': 'bearer',
-    }
-
-    if token.expires:
-        response['expires_in'] = token.ttl
-
-    if token.refresh_token:
-        response['refresh_token'] = token.refresh_token
-
-    return response
+    return _access_token_response(svc, user, authclient)
 
 
 @cors_json_view(route_name='api.debug_token', request_method='GET')
@@ -206,3 +246,20 @@ def _present_debug_token(token):
                           'name': token.authclient.name}
 
     return data
+
+
+def _access_token_response(oauth_svc, user, authclient):
+    token = oauth_svc.create_token(user, authclient)
+
+    response = {
+        'access_token': token.value,
+        'token_type': 'bearer',
+    }
+
+    if token.expires:
+        response['expires_in'] = token.ttl
+
+    if token.refresh_token:
+        response['refresh_token'] = token.refresh_token
+
+    return response
