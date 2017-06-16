@@ -150,6 +150,8 @@ def default_querybuilder(request):
     builder.append_filter(query.DeletedFilter())
     builder.append_filter(query.AuthFilter(request))
     builder.append_filter(query.UriFilter(request))
+    if request.feature('site_query'):
+        builder.append_filter(query.SiteFilter(request))
     builder.append_filter(query.GroupFilter())
     builder.append_filter(query.UserFilter())
     builder.append_matcher(query.AnyMatcher())

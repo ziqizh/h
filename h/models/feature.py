@@ -11,6 +11,7 @@ from h.db import Base
 log = logging.getLogger(__name__)
 
 FEATURES = {
+    'site_query': ("Support site: query, i.e. uri: with wildcards"),
     'defer_realtime_updates': ("Require a user action before applying real-time"
                                " updates to annotations in the client?"),
     'filter_highlights': ("Filter highlights in document based on visible"

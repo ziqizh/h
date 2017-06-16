@@ -42,6 +42,8 @@ class Builder(object):
         matchers = [m for m in matchers if m is not None]
 
         # Remaining parameters are added as straightforward key-value matchers
+        if 'site' in params.keys():
+            params.pop('site') # exclude site facet
         for key, value in params.items():
             matchers.append({"match": {key: value}})
 
@@ -149,6 +151,29 @@ class GroupFilter(object):
 
         if group is not None:
             return {"term": {"group": group}}
+
+
+class SiteFilter(object):
+
+    """
+    A filter that selects only annotations where the 'site' parameter matches as *site*.
+    """
+
+    def __init__(self, request):
+        """Initialize a new SiteFilter.
+
+        :param request: the pyramid.request object
+
+        """
+        self.request = request
+
+    def __call__(self, params):
+        if 'site' not in params:
+            return None
+
+        site = params['site']
+
+        return { "query":{ "wildcard": { "target.scope": "*" + site + "*" } } }
 
 
 class UriFilter(object):
