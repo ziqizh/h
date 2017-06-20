@@ -46,13 +46,13 @@
     </div>
   </div>
   {% if presented_annotation.annotation.quote %}
-    <blockquote title="Annotation quote" class="annotation-card__quote">
+    <section role="navigation" title="Annotation quote" class="annotation-card__quote">
       {{ presented_annotation.annotation.quote }}
-    </blockquote>
+    </section>
   {% endif %}
-  <p class="annotation-card__text">
+  <section role="navigation" title="Annotation text" class="annotation-card__text">
     {{ presented_annotation.annotation.text_rendered }}
-  </p>
+  </section>
   <div title="Tags" class="annotation-card__tags">
     {% for tag in presented_annotation.annotation.tags%}
       <a class="annotation-card__tag" href="{{ tag_link(tag) }}">
