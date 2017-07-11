@@ -230,6 +230,7 @@ def read(context, request):
     svc = request.find_service(name='annotation_json_presentation')
     return svc.present(context)
 
+
 @api_config(route_name='api.annotation.jsonld',
             request_method='GET',
             permission='read')
