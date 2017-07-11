@@ -78,7 +78,7 @@ class AnnotationResource(object):
         for action in ['admin', 'update', 'delete']:
             acl.append((Allow, self.annotation.userid, action))
 
-        if self.request_url.endswith('.shared'):
+        if self.request_url and self.request_url.endswith('.shared'):
             acl.append((Allow, Everyone, 'read'))
 
         # If we haven't explicitly authorized it, it's not allowed.
