@@ -85,6 +85,10 @@ def includeme(config):
                      '/api/annotations/{id:[A-Za-z0-9_-]{20,22}}.jsonld',
                      factory='h.resources:AnnotationResourceFactory',
                      traverse='/{id}')
+    config.add_route('api.annotation.shared',
+                     '/api/annotations/{id:[A-Za-z0-9_-]{20,22}}.shared',
+                     factory='h.resources:AnnotationResourceFactory',
+                     traverse='/{id}')
     config.add_route('api.profile', '/api/profile')
     config.add_route('api.debug_token', '/api/debug-token')
     config.add_route('api.search', '/api/search')

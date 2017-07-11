@@ -230,7 +230,6 @@ def read(context, request):
     svc = request.find_service(name='annotation_json_presentation')
     return svc.present(context)
 
-
 @api_config(route_name='api.annotation.jsonld',
             request_method='GET',
             permission='read')
@@ -240,6 +239,17 @@ def read_jsonld(context, request):
         'profile': AnnotationJSONLDPresenter.CONTEXT_URL}
     presenter = AnnotationJSONLDPresenter(context)
     return presenter.asdict()
+
+
+@api_config(route_name='api.annotation.shared',
+            request_method='GET',
+            link_name='annotation.shared',
+            description='Check if annotation is shared')
+def read_shared(context, request):
+    id = request.matchdict["id"]
+    request.response.content_type = 'application/json'
+    session = request.db
+    return storage.fetch_annotation(session, id).shared
 
 
 @api_config(route_name='api.annotation',

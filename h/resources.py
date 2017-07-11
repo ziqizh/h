@@ -7,6 +7,7 @@ from pyramid.security import (
     DENY_ALL,
     Allow,
     principals_allowed_by_permission,
+    Everyone
 )
 
 from h import storage
@@ -39,14 +40,15 @@ class AnnotationResourceFactory(object):
 
         group_service = self.request.find_service(IGroupService)
         links_service = self.request.find_service(name='links')
-        return AnnotationResource(annotation, group_service, links_service)
+        return AnnotationResource(annotation, group_service, links_service, self.request.url)
 
 
 class AnnotationResource(object):
-    def __init__(self, annotation, group_service, links_service):
+    def __init__(self, annotation, group_service, links_service, request_url=None):
         self.group_service = group_service
         self.links_service = links_service
         self.annotation = annotation
+        self.request_url = request_url
 
     @property
     def group(self):
@@ -75,6 +77,9 @@ class AnnotationResource(object):
 
         for action in ['admin', 'update', 'delete']:
             acl.append((Allow, self.annotation.userid, action))
+
+        if self.request_url.endswith('.shared'):
+            acl.append((Allow, Everyone, 'read'))
 
         # If we haven't explicitly authorized it, it's not allowed.
         acl.append(DENY_ALL)

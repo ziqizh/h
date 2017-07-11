@@ -102,6 +102,7 @@ class TestIndex(object):
         pyramid_config.add_route('api.search', '/dummy/search')
         pyramid_config.add_route('api.annotations', '/dummy/annotations')
         pyramid_config.add_route('api.annotation', '/dummy/annotations/:id')
+        pyramid_config.add_route('api.annotation.shared', '/dummy/annotations/:id')
         pyramid_config.add_route('api.links', '/dummy/links')
 
         result = views.index(testing.DummyResource(), pyramid_request)
