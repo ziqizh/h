@@ -143,7 +143,6 @@ class TestCheckURL(object):
 
         assert check_url(pyramid_request, query) is None
 
-
     def test_removes_user_term_from_query(self, pyramid_request, unparse):
         query = MultiDict({'user': 'jose'})
 
@@ -197,7 +196,6 @@ class TestCheckURL(object):
                          'presenters',
                          'Search',
                          'TagsAggregation',
-                         'TopLevelAnnotationsFilter',
                          'UsersAggregation')
 class TestExecute(object):
 
@@ -209,16 +207,6 @@ class TestExecute(object):
 
         Search.assert_called_once_with(pyramid_request,
                                        stats=pyramid_request.stats)
-
-    def test_it_only_returns_top_level_annotations(self,
-                                                   pyramid_request,
-                                                   search,
-                                                   TopLevelAnnotationsFilter):
-        execute(pyramid_request, MultiDict(), self.PAGE_SIZE)
-
-        TopLevelAnnotationsFilter.assert_called_once_with()
-        search.append_filter.assert_called_once_with(
-            TopLevelAnnotationsFilter.return_value)
 
     def test_it_adds_a_tags_aggregation_to_the_search_query(self,
                                                             pyramid_request,
@@ -342,6 +330,7 @@ class TestExecute(object):
         assert result.total == 0
         assert result.aggregations == mock.sentinel.aggregations
         assert result.timeframes == []
+        assert result.replycounts == {}
 
     def test_it_fetches_the_annotations_from_the_database(self,
                                                           fetch_annotations,
@@ -359,9 +348,52 @@ class TestExecute(object):
                                         search):
         result = execute(pyramid_request, MultiDict(), self.PAGE_SIZE)
 
-        bucketing.bucket.assert_called_once_with(
-            fetch_annotations.return_value)
         assert result.timeframes == bucketing.bucket.return_value
+
+    def test_it_counts_one_reply(self,
+                                 factories,
+                                 fetch_annotations,
+                                 pyramid_request,
+                                 search):
+
+        anno_1 = factories.Annotation.build(id='anno_1',
+                                            references=[])
+
+        anno_2 = factories.Annotation.build(id='anno_2',
+                                            references=['anno_1'])
+
+        anno_3 = factories.Annotation.build(id='anno_3',
+                                            references=[])
+
+        fetch_annotations.return_value = [anno_1, anno_2, anno_3]
+
+        result = execute(pyramid_request, MultiDict(), self.PAGE_SIZE)
+
+        assert result.replycounts['anno_1'] == 1
+        assert result.replycounts['anno_3'] == 0
+
+    def test_it_counts_zero_replies(self,
+                                    factories,
+                                    fetch_annotations,
+                                    pyramid_request,
+                                    search):
+
+        anno_1 = factories.Annotation.build(id='anno_1',
+                                            references=[])
+
+        anno_2 = factories.Annotation.build(id='anno_2',
+                                            references=[])
+
+        anno_3 = factories.Annotation.build(id='anno_3',
+                                            references=[])
+
+        fetch_annotations.return_value = [anno_1, anno_2, anno_3]
+
+        result = execute(pyramid_request, MultiDict(), self.PAGE_SIZE)
+
+        assert result.replycounts['anno_1'] == 0
+        assert result.replycounts['anno_2'] == 0
+        assert result.replycounts['anno_3'] == 0
 
     def test_it_fetches_the_groups_from_the_database(self,
                                                      _fetch_groups,
@@ -566,10 +598,6 @@ class TestExecute(object):
     @pytest.fixture
     def TagsAggregation(self, patch):
         return patch('h.activity.query.TagsAggregation')
-
-    @pytest.fixture
-    def TopLevelAnnotationsFilter(self, patch):
-        return patch('h.activity.query.TopLevelAnnotationsFilter')
 
     @pytest.fixture
     def UsersAggregation(self, patch):

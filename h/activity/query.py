@@ -17,7 +17,6 @@ from h.search import Search
 from h.search import parser
 from h.search.query import (
     TagsAggregation,
-    TopLevelAnnotationsFilter,
     UsersAggregation,
 )
 
@@ -26,6 +25,7 @@ class ActivityResults(namedtuple('ActivityResults', [
     'total',
     'aggregations',
     'timeframes',
+    'replycounts'
 ])):
     pass
 
@@ -101,22 +101,43 @@ def check_url(request, query, unparse=parser.unparse):
     if redirect is not None:
         raise HTTPFound(location=redirect)
 
+def _count_replies(toplevel_annotation, replies):
+    count = 0
+    for reply in replies:
+        if toplevel_annotation.id in reply.references:
+            count += 1
+    return count
 
 @newrelic.agent.function_trace()
 def execute(request, query, page_size):
+
     search_result = _execute_search(request, query, page_size)
 
-    result = ActivityResults(total=search_result.total,
-                             aggregations=search_result.aggregations,
-                             timeframes=[])
-
-    if result.total == 0:
-        return result
+    if search_result.total == 0:
+        return ActivityResults(total=search_result.total,
+                               aggregations=search_result.aggregations,
+                               timeframes=[],
+                               replycounts={})
 
     # Load all referenced annotations from the database, bucket them, and add
     # the buckets to result.timeframes.
     anns = fetch_annotations(request.db, search_result.annotation_ids)
-    result.timeframes.extend(bucketing.bucket(anns))
+
+    # Count replies.
+    toplevels = [ann for ann in anns if not ann.references]
+    replies = [ann for ann in anns if ann.references]
+    replycounts = {}
+    for toplevel in toplevels:
+        replycounts[toplevel.id] = _count_replies(toplevel, replies)
+
+    result = ActivityResults(total=search_result.total,
+                             aggregations=search_result.aggregations,
+                             timeframes=[],
+                             replycounts=replycounts)
+
+    # The TopLevelAnnotation filter was removed to make replies countable
+    # Apply the filter here instead by passing only toplevel annotations
+    result.timeframes.extend(bucketing.bucket(toplevels))
 
     # Fetch all groups
     group_pubids = set([a.groupid
@@ -132,6 +153,7 @@ def execute(request, query, page_size):
             for annotation in bucket.annotations:
                 bucket.presented_annotations.append({
                     'annotation': presenters.AnnotationHTMLPresenter(annotation),
+                    'id' : annotation.id,
                     'group': groups.get(annotation.groupid),
                     'incontext_link': links.incontext_link(request, annotation)
                 })
@@ -163,7 +185,10 @@ def fetch_annotations(session, ids):
 @newrelic.agent.function_trace()
 def _execute_search(request, query, page_size):
     search = Search(request, stats=request.stats)
-    search.append_filter(TopLevelAnnotationsFilter())
+
+    # Remove the TopLevelFilter so we can count replies
+    #  search.append_filter(TopLevelAnnotationsFilter())
+
     for agg in aggregations_for(query):
         search.append_aggregation(agg)
 
@@ -183,6 +208,7 @@ def _execute_search(request, query, page_size):
     query['offset'] = (page - 1) * page_size
 
     search_result = search.run(query)
+
     return search_result
 
 

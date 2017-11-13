@@ -12,7 +12,7 @@
   :param tag_link: Method which generates a link for a given tag.
 #}
 
-{% macro annotation_card(presented_annotation, request, tag_link) -%}
+{% macro annotation_card(presented_annotation, request, tag_link, replycount) -%}
 <li class="annotation-card">
   <div class="annotation-card__header">
     <div class="annotation-card__username-timestamp">
@@ -60,6 +60,11 @@
       </a>
     {% endfor %}
   </div>
+  {% if replycount %}
+     <div>
+        <a target="_replies" href="{{ request.route_url('annotation', id=presented_annotation.annotation.id) }}"><span class="annotation-card__replies"> {{ replycount }} replies </span> </a>
+     </div>
+  {% endif %}
   <footer class="annotation-card__footer">
     {% if presented_annotation.incontext_link %}
       <a href="{{ presented_annotation.incontext_link }}"
