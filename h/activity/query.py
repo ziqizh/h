@@ -111,8 +111,6 @@ def _count_replies(toplevel_id, replies):
 @newrelic.agent.function_trace()
 def execute(request, query, page_size):
 
-    page_size = 10
-
     search_result = _execute_search(request, query, page_size)
 
     if search_result.total == 0:
@@ -125,9 +123,9 @@ def execute(request, query, page_size):
     # the buckets to result.timeframes.
 
     # Count replies.
-    toplevels = fetch_annotations(request.db, search_result.annotation_ids)    
+    toplevels = fetch_annotations(request.db, search_result.annotation_ids)
 
-    replies = fetch_annotations(request.db, search_result.reply_ids)    
+    replies = fetch_annotations(request.db, search_result.reply_ids)
 
     replycounts = {}
 
