@@ -101,15 +101,17 @@ def check_url(request, query, unparse=parser.unparse):
     if redirect is not None:
         raise HTTPFound(location=redirect)
 
-def _count_replies(toplevel_annotation, replies):
+def _count_replies(toplevel_id, replies):
     count = 0
     for reply in replies:
-        if toplevel_annotation.id in reply.references:
+        if toplevel_id in reply.references:
             count += 1
     return count
 
 @newrelic.agent.function_trace()
 def execute(request, query, page_size):
+
+    page_size = 10
 
     search_result = _execute_search(request, query, page_size)
 
@@ -121,14 +123,16 @@ def execute(request, query, page_size):
 
     # Load all referenced annotations from the database, bucket them, and add
     # the buckets to result.timeframes.
-    anns = fetch_annotations(request.db, search_result.annotation_ids)
 
     # Count replies.
-    toplevels = [ann for ann in anns if not ann.references]
-    replies = [ann for ann in anns if ann.references]
+    toplevels = fetch_annotations(request.db, search_result.annotation_ids)    
+
+    replies = fetch_annotations(request.db, search_result.reply_ids)    
+
     replycounts = {}
+
     for toplevel in toplevels:
-        replycounts[toplevel.id] = _count_replies(toplevel, replies)
+        replycounts[toplevel.id] = _count_replies(toplevel.id, replies)
 
     result = ActivityResults(total=search_result.total,
                              aggregations=search_result.aggregations,
@@ -184,7 +188,7 @@ def fetch_annotations(session, ids):
 
 @newrelic.agent.function_trace()
 def _execute_search(request, query, page_size):
-    search = Search(request, stats=request.stats)
+    search = Search(request, stats=request.stats, separate_replies=True)
 
     # Remove the TopLevelFilter so we can count replies
     #  search.append_filter(TopLevelAnnotationsFilter())
