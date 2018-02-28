@@ -169,6 +169,9 @@ class GroupSearchController(SearchController):
             'creator': self.group.creator.userid if self.group.creator else None,
             'share_subtitle': _('Share group'),
             'share_msg': _('Sharing the link lets people view this group:'),
+            # only show the logo and authority on the side bar if the authority is not the default
+            'authority': None if self.request.authority == self.group.authority else self.group.authority,
+            'logo': self.group.logo,
         }
 
         if self.group.type == 'private':
