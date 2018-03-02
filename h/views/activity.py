@@ -170,7 +170,7 @@ class GroupSearchController(SearchController):
             'share_subtitle': _('Share group'),
             'share_msg': _('Sharing the link lets people view this group:'),
             # only show the logo and authority on the side bar if the authority is not the default
-            'authority': None if self.request.authority == self.group.authority else self.group.authority,
+            'authority': None if self.request.authority == self.group.authority else self.group.authority.upper(),
             'logo': self.group.logo,
         }
 
