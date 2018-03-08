@@ -219,15 +219,10 @@
   <form method="GET" action="{{ request.path_url }}">
     <input type="hidden" name="q" value="{{ q }}">
 
-    {% if authority %}
-      <span class="search-result-sidebar__logo-container"> 
-        {% if logo %}
-         {{ svg_icon(logo, css_class='search-result-sidebar__group-logo') }} 
-         
-        {% endif %}
-        {{ authority }}
-      </span>
-    {% endif %}
+    <span class="search-result-sidebar__logo-container"> 
+       {{ svg_icon('biopub-logo', css_class='search-result-sidebar__group-logo') }} 
+       BIOPUB 
+    </span>
 
     <h1 class="search-result-sidebar__title">{{ title }}</h1>
 

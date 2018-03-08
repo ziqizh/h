@@ -2,7 +2,11 @@
   width: $search-result-sidebar-width;
   flex-shrink: 0;
   margin-bottom: 40px;
-  margin-left: 20px;
+  margin-left: 30px;
+  border-left: solid;
+  border-width: thin;
+  border-color: lightgray;
+  padding-left: 30px;
 }
 
 .search-result-sidebar__title {
