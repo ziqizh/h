@@ -14,6 +14,7 @@ const ConfirmSubmitController = require('./controllers/confirm-submit-controller
 const FormController = require('./controllers/form-controller');
 const FormInputController = require('./controllers/form-input-controller');
 const ListInputController = require('./controllers/list-input-controller');
+const ListInputItemController = require('./controllers/list-input-item-controller');
 const TooltipController = require('./controllers/tooltip-controller');
 const upgradeElements = require('./base/upgrade-elements');
 
@@ -22,6 +23,7 @@ const controllers = {
   '.js-form': FormController,
   '.js-form-input': FormInputController,
   '.js-list-input': ListInputController,
+  '.js-list-input-item': ListInputItemController,
   '.js-tooltip': TooltipController,
   '.js-users-delete-form': AdminUsersController,
 };

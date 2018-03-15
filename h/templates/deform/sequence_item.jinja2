@@ -1,5 +1,5 @@
 {% if not field.widget.hidden %}
-<li class="list-input__item" title="{{ field.description }}">
+<li class="list-input__item js-list-input-item" title="{{ field.description }}">
 
   <div class="list-input__item-inner">
     {{ field.serialize(cstruct=cstruct) | safe }}
@@ -12,14 +12,14 @@
     </button>
   </div>
 
-  {%- if field.error and not field.widget.hidden -%}
-  <ul class="list-input__error-list">
+  {% if field.error and not field.widget.hidden %}
+  <ul class="list-input__error-list" data-ref="errorList">
     {% for msg in field.error.messages() -%}
       {%- set errstr = 'error-%s' % field.oid -%}
       {%- set pid = (loop.index0==0 and errstr) or ('%s-%s' % (errstr, loop.index0)) -%}
       <li class="list-input__error-item" id="{{ pid }}">{{ _(msg) }}</li>
     {% endfor -%}
   </ul>
-  {% endif -%}
+  {% endif %}
 </li>
 {% endif %}

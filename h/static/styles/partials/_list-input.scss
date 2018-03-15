@@ -42,6 +42,10 @@
   padding-left: 10px;
 }
 
+.list-input__error-list.is-hidden {
+  visibility: hidden;
+}
+
 .list-input__error-item {
   color: $brand;
 }
