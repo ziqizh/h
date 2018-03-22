@@ -34,8 +34,22 @@ class OrganizationService(object):
         self.session.add(organization)
         return organization
 
+    def fetch(self, pubid, authority=None):
+        """
+        Fetch an organizaion by it's pubid.
+        For example::
+
+          organization_service.fetch('')
+
+        :returns: an organization instance, if found
+        :rtype: h.models.Organization or None
+
+        """
+        return (self.session.query(Organization)
+                            .filter_by(pubid=pubid)
+                            .one_or_none())
+
 
 def organization_factory(request):
     """Return a OrganizationService instance for the request."""
-    return OrganizationService(session=request.db,
-                               )
+    return OrganizationService(session=request.db)

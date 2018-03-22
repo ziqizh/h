@@ -26,6 +26,14 @@ class TestOrganizationService(object):
         assert isinstance(organization, Organization)
         assert organization.logo is None
 
+    def test_fetch_returns_organization(self, service):
+        organization = service.create(
+            name='Organization',
+            authority='publisher.com')
+        organization.pubid = 'foopubid'
+        fetched_org = service.fetch(organization.pubid)
+        assert fetched_org == organization
+
     @pytest.fixture
     def service(self, db_session):
         return OrganizationService(db_session)

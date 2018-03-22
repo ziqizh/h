@@ -9,6 +9,7 @@ from h.models import Group, GroupScope
 from h.models.group import JoinableBy, ReadableBy, WriteableBy
 from h.services.group import GroupService
 from h.services.group import groups_factory
+from h.services.organization import OrganizationService
 
 from tests.common.matchers import Matcher
 
@@ -64,6 +65,18 @@ class TestGroupService(object):
 
         assert group.organization == default_organization
 
+    def test_create_private_group_creates_group_with_specified_organization(
+            self, organization_svc, db_session, service):
+        org = OrganizationService(db_session).create(
+            name='My organization',
+            authority='example.com',
+            )
+        organization_svc.fetch.return_value = org
+
+        group = service.create_private_group('Anteater fans', 'cazimir', organization=org.pubid)
+
+        assert group.organization == org
+
     def test_create_private_group_adds_group_to_session(self, db_session, service):
         group = service.create_private_group('Anteater fans', 'cazimir')
 
@@ -96,6 +109,40 @@ class TestGroupService(object):
         assert group.readable_by == ReadableBy.world
         assert group.writeable_by == WriteableBy.authority
         assert group.organization == default_organization
+
+    def test_create_open_group_creates_group_with_specified_organization(
+            self, organization_svc, db_session, service, users):
+        creator = users['cazimir']
+        org = OrganizationService(db_session).create(
+            name='My organization',
+            authority='example.com',
+            )
+        organization_svc.fetch.return_value = org
+
+        group = service.create_open_group(name='test_group',
+                                                userid=creator.username,
+                                                origins=['https://biopub.org'],
+                                                description='test_description',
+                                                organization=org.pubid)
+
+        assert group.organization == org
+
+    def test_create_open_group_creates_group_with_specified_organization(
+            self, organization_svc, db_session, service, users):
+        creator = users['cazimir']
+        org = OrganizationService(db_session).create(
+            name='My organization',
+            authority='example.com',
+            )
+        organization_svc.fetch.return_value = org
+
+        group = service.create_open_group(name='test_group',
+                                          userid=creator.username,
+                                          origins=['https://biopub.org'],
+                                          description='test_description',
+                                          organization=org)
+
+        assert group.organization == org
 
     def test_create_open_group_sets_scopes(self, service, matchers, users):
         origins = ['https://biopub.org', 'http://example.com', 'https://wikipedia.com']
@@ -148,6 +195,23 @@ class TestGroupService(object):
         assert group.writeable_by == WriteableBy.members
         assert group.organization == default_organization
         assert creator in group.members
+
+    def test_create_restricted_group_creates_group_with_specified_organization(
+            self, organization_svc, db_session, service, users):
+        creator = users['cazimir']
+        org = OrganizationService(db_session).create(
+            name='My organization',
+            authority='example.com',
+            )
+        organization_svc.fetch.return_value = org
+
+        group = service.create_restricted_group(name='test_group',
+                                                userid=creator.username,
+                                                origins=['https://biopub.org'],
+                                                description='test_description',
+                                                organization=org.pubid)
+
+        assert group.organization == org
 
     def test_create_restricted_group_adds_group_creator_to_members(self, service, users):
         creator = users['cazimir']
@@ -315,11 +379,11 @@ class TestGroupService(object):
         return mock.Mock(spec_set=[])
 
     @pytest.fixture
-    def service(self, db_session, users, publish):
-        return GroupService(db_session, users.get, publish=publish)
+    def service(self, db_session, organization_svc, users, publish):
+        return GroupService(db_session, users.get, organization_svc.fetch, publish=publish)
 
 
-@pytest.mark.usefixtures('user_service')
+@pytest.mark.usefixtures('user_service', 'organization_svc')
 class TestGroupsFactory(object):
     def test_returns_groups_service(self, pyramid_request):
         svc = groups_factory(None, pyramid_request)
@@ -330,6 +394,13 @@ class TestGroupsFactory(object):
         svc = groups_factory(None, pyramid_request)
 
         assert svc.session == pyramid_request.db
+
+    def test_wraps_organization_service_as_organization_fetcher(self, pyramid_request, organization_svc):
+        svc = groups_factory(None, pyramid_request)
+
+        svc.organization_fetcher('foo')
+
+        organization_svc.fetch.assert_called_once_with('foo')
 
     def test_wraps_user_service_as_user_fetcher(self, pyramid_request, user_service):
         svc = groups_factory(None, pyramid_request)
@@ -371,6 +442,14 @@ def user_service(pyramid_config):
     service = mock.Mock(spec_set=['fetch'])
     service.fetch.return_value = None
     pyramid_config.register_service(service, name='user')
+    return service
+
+
+@pytest.fixture
+def organization_svc(pyramid_config, default_organization):
+    service = mock.Mock(spec_set=['fetch'])
+    service.fetch.return_value = default_organization
+    pyramid_config.register_service(service, name='organization')
     return service
 
 

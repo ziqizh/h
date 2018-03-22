@@ -13,7 +13,7 @@ class GroupService(object):
 
     """A service for manipulating groups and group membership."""
 
-    def __init__(self, session, user_fetcher, publish):
+    def __init__(self, session, user_fetcher, organization_fetcher, publish):
         """
         Create a new groups service.
 
@@ -23,9 +23,10 @@ class GroupService(object):
         """
         self.session = session
         self.user_fetcher = user_fetcher
+        self.organization_fetcher = organization_fetcher
         self.publish = publish
 
-    def create_private_group(self, name, userid, description=None):
+    def create_private_group(self, name, userid, description=None, organization='__default__'):
         """
         Create a new private group.
 
@@ -34,6 +35,8 @@ class GroupService(object):
         :param name: the human-readable name of the group
         :param userid: the userid of the group creator
         :param description: the description of the group
+        :param organization: the organization that this group belongs to in the form of
+               pubid or model obj
 
         :returns: the created group
         """
@@ -42,9 +45,10 @@ class GroupService(object):
                             description=description,
                             type_flags=PRIVATE_GROUP_TYPE_FLAGS,
                             add_creator_as_member=True,
+                            organization=organization,
                             )
 
-    def create_open_group(self, name, userid, origins, description=None):
+    def create_open_group(self, name, userid, origins, description=None, organization='__default__'):
         """
         Create a new open group.
 
@@ -54,6 +58,8 @@ class GroupService(object):
         :param userid: the userid of the group creator
         :param origins: the list of origins that the group will be scoped to
         :param description: the description of the group
+        :param organization: the organization that this group belongs to in the form of
+               pubid or model obj
 
         :returns: the created group
         """
@@ -63,9 +69,10 @@ class GroupService(object):
                             type_flags=OPEN_GROUP_TYPE_FLAGS,
                             origins=origins,
                             add_creator_as_member=False,
+                            organization=organization,
                             )
 
-    def create_restricted_group(self, name, userid, origins, description=None):
+    def create_restricted_group(self, name, userid, origins, description=None, organization='__default__'):
         """
         Create a new restricted group.
 
@@ -76,6 +83,8 @@ class GroupService(object):
         :param userid: the userid of the group creator
         :param origins: the list of origins that the group will be scoped to
         :param description: the description of the group
+        :param organization: the organization that this group belongs to in the form of
+               pubid or model obj
 
         :returns: the created group
         """
@@ -85,6 +94,7 @@ class GroupService(object):
                             type_flags=RESTRICTED_GROUP_TYPE_FLAGS,
                             origins=origins,
                             add_creator_as_member=True,
+                            organization=organization,
                             )
 
     def member_join(self, group, userid):
@@ -135,7 +145,8 @@ class GroupService(object):
 
         return [g.pubid for g in self.session.query(Group.pubid).filter_by(creator=user)]
 
-    def _create(self, name, userid, description, type_flags, origins=[], add_creator_as_member=False):
+    def _create(self, name, userid, description, type_flags,
+                origins=[], add_creator_as_member=False, organization='__default__'):
         """
         Create a group and save it to the DB.
 
@@ -145,10 +156,13 @@ class GroupService(object):
         :param type_flags: the type of this group
         :param origins: the list of origins that the group will be scoped to
         :param add_creator_as_member: if the group creator should be added as a member
+        :param organization: the organization that this group belongs to in the form of
+               pubid or model obj
         """
         creator = self.user_fetcher(userid)
         scopes = [GroupScope(origin=o) for o in origins]
-
+        if not isinstance(organization, Organization):
+            organization = self.organization_fetcher(organization)
         group = Group(name=name,
                       authority=creator.authority,
                       creator=creator,
@@ -157,7 +171,7 @@ class GroupService(object):
                       readable_by=type_flags.readable_by,
                       writeable_by=type_flags.writeable_by,
                       scopes=scopes,
-                      organization=Organization.default(self.session),
+                      organization=organization,
                       )
         self.session.add(group)
 
@@ -175,8 +189,10 @@ class GroupService(object):
 def groups_factory(context, request):
     """Return a GroupService instance for the passed context and request."""
     user_service = request.find_service(name='user')
+    organization_service = request.find_service(name='organization')
     return GroupService(session=request.db,
                         user_fetcher=user_service.fetch,
+                        organization_fetcher=organization_service.fetch,
                         publish=partial(_publish, request))
 
 
