@@ -47,16 +47,18 @@ class Organization(Base, mixins.Timestamps):
 
     @sa.orm.validates('logo')
     def validate_logo(self, key, logo):
-        if not (len(logo) <= ORGANIZATION_LOGO_MAX_CHARS):
-            raise ValueError(
-                'logo must be less than {max} characters long'
-                .format(max=ORGANIZATION_NAME_MAX_CHARS))
-        try:
-            root = ElementTree.fromstring(logo)
-        except ElementTree.ParseError:
-            raise ValueError('logo is not a valid SVG (could not parse XML)')
-        if root.tag != 'svg':
-            raise ValueError('logo is not a valid SVG (does not start with an <svg> tag')
+        # If the logo is not None then it must be an svg format.
+        if logo:
+            if not (len(logo) <= ORGANIZATION_LOGO_MAX_CHARS):
+                raise ValueError(
+                    'logo must be less than {max} characters long'
+                    .format(max=ORGANIZATION_NAME_MAX_CHARS))
+            try:
+                root = ElementTree.fromstring(logo)
+            except ElementTree.ParseError:
+                raise ValueError('logo is not a valid SVG (could not parse XML)')
+            if root.tag != 'svg':
+                raise ValueError('logo is not a valid SVG (does not start with an <svg> tag')
         return logo
 
     def __repr__(self):
