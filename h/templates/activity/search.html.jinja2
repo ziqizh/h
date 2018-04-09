@@ -211,7 +211,7 @@
 </section>
 {% endmacro %}
 
-{% macro sidebar(title, authority, logo) %}
+{% macro sidebar(title, organization_name, organization_logo) %}
 <aside class="search-result-sidebar {%- if not more_info %} search-result-hide-on-small-screens{% endif %}">
 
   {#- This form element is needed for Internet Explorer because it
@@ -219,13 +219,13 @@
   <form method="GET" action="{{ request.path_url }}">
     <input type="hidden" name="q" value="{{ q }}">
 
-    {% if authority %}
+    {% if organization_name %}
       <span class="search-result-sidebar__logo-container"> 
-        {% if logo %}
-         {{ svg_icon(logo, css_class='search-result-sidebar__organization-logo') }} 
+        {% if organization_logo %}
+         {{ svg_icon(organization_logo, css_class='search-result-sidebar__organization-logo') }} 
          
         {% endif %}
-        {{ authority }}
+        {{ organization_name }}
       </span>
     {% endif %}
 
@@ -237,7 +237,7 @@
 {% endmacro %}
 
 {% macro group_sidebar(group, group_edit_url, total, stats) %}
-  {% call sidebar(group.name, group.authority, group.logo) %}
+  {% call sidebar(group.name, group.organization_name, group.organization_logo) %}
 
     <section class="search-result-sidebar__section">
       {% if group.description %}
