@@ -242,8 +242,8 @@ class TestGroupSearchController(object):
         assert group_info['description'] == test_group.description
         assert group_info['name'] == test_group.name
         assert group_info['pubid'] == test_group.pubid
-        assert group_info['logo'] is None
-        assert group_info['authority'] is None
+        assert group_info['organization_logo'] is None
+        assert group_info['organization_name'] is None
 
     @pytest.mark.parametrize('test_group,test_user',
                              [('group', 'member'), ],
@@ -256,8 +256,8 @@ class TestGroupSearchController(object):
                                                      pyramid_request):
         group_info = controller.search()['group']
 
-        assert group_info['logo'] == "biopub-logo"
-        assert group_info['authority'] == "BIOPUB.HYPOTHES.IS"
+        assert group_info['organization_logo'] == "biopub-logo"
+        assert group_info['organization_name'] == "BIOPUB.HYPOTHES.IS"
 
     @pytest.mark.parametrize('test_group,test_user',
                              [('no_creator_group', 'member'), ('no_creator_open_group', 'user')],
