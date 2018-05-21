@@ -50,6 +50,7 @@ run-docker:
 		-e "DATABASE_URL=postgresql://postgres@$(PG_CONTAINER)/postgres" \
 		-e "ELASTICSEARCH_HOST=http://$(ES_CONTAINER):9200" \
 		-e WEB_NUM_WORKERS=12 \
+		-e SECRET_KEY=notasecret \
 		-p 5000:5000 \
 		hypothesis/hypothesis:$(DOCKER_TAG)
 
