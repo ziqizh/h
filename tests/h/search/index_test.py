@@ -349,6 +349,23 @@ class TestBatchIndexer(object):
                                             doc_type="annotation",
                                             id=id)
 
+    def test_it_does_not_index_deleted_annotations(self, batch_indexer, es_client, factories):
+        ann = factories.Annotation()
+        # create deleted annotations
+        ann_del = factories.Annotation(deleted=True)
+
+        batch_indexer.index()
+
+        result_indexed = es_client.conn.get(index=es_client.index,
+                                            doc_type="annotation",
+                                            id=ann.id)
+        assert result_indexed["_id"] == ann.id
+
+        with pytest.raises(elasticsearch1.exceptions.NotFoundError):
+            es_client.conn.get(index=es_client.index,
+                               doc_type="annotation",
+                               id=ann_del.id)
+
     def test_it_logs_indexing_status(self, caplog, batch_indexer, factories):
         annotations = factories.Annotation.create_batch(10)
         ids = [a.id for a in annotations]
