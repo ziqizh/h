@@ -294,10 +294,6 @@ class TestIndex(object):
                 id=annotation_id)["_source"]
         return _get
 
-    @pytest.fixture
-    def AnnotationTransformEvent(self, patch):
-        return patch('h.search.index.AnnotationTransformEvent')
-
 
 class TestDelete(object):
     def test_annotation_is_marked_deleted(self, es_client, factories, index, search):
@@ -348,6 +344,35 @@ class TestBatchIndexer(object):
                 result = es_client.conn.get(index=es_client.index,
                                             doc_type="annotation",
                                             id=id)
+
+    def test_it_does_not_index_deleted_annotations(self, batch_indexer, es_client, factories):
+        ann = factories.Annotation()
+        # create deleted annotations
+        ann_del = factories.Annotation(deleted=True)
+
+        batch_indexer.index()
+
+        result_indexed = es_client.conn.get(index=es_client.index,
+                                            doc_type="annotation",
+                                            id=ann.id)
+        assert result_indexed["_id"] == ann.id
+
+        with pytest.raises(elasticsearch1.exceptions.NotFoundError):
+            es_client.conn.get(index=es_client.index,
+                               doc_type="annotation",
+                               id=ann_del.id)
+
+    def test_it_notifies(self, AnnotationTransformEvent, batch_indexer, factories, pyramid_request,
+                         notify):
+        annotations = factories.Annotation.create_batch(3)
+
+        batch_indexer.index()
+
+        event = AnnotationTransformEvent.return_value
+
+        for annotation in annotations:
+            AnnotationTransformEvent.assert_has_calls([mock.call(pyramid_request, annotation, mock.ANY)])
+            notify.assert_has_calls([mock.call(event)])
 
     def test_it_logs_indexing_status(self, caplog, batch_indexer, factories):
         annotations = factories.Annotation.create_batch(10)
@@ -417,3 +442,8 @@ def search(es_client):
 def batch_indexer(db_session, es_client, pyramid_request):
     return h.search.index.BatchIndexer(db_session, es_client,
                                        pyramid_request, es_client.index)
+
+
+@pytest.fixture
+def AnnotationTransformEvent(patch):
+    return patch('h.search.index.AnnotationTransformEvent')
