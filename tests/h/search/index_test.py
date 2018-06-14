@@ -376,6 +376,27 @@ class TestBatchIndexer(object):
                 if record.filename == 'index.py':
                     assert 'indexed 0k annotations, rate=' in record.msg
 
+    def test_it_correctly_presents_bulk_actions(self, batch_indexer, es_client, factories):
+        anns_a = factories.Annotation.create_batch(3, groupid="group_a")
+        anns_b = factories.Annotation.create_batch(3, groupid="group_b")
+
+        ids_a = [a.id for a in anns_a]
+        ids_b = [a.id for a in anns_b]
+
+        batch_indexer.index()
+
+        for id in ids_a:
+            result = es_client.conn.get(index=es_client.index,
+                                        doc_type="annotation",
+                                        id=id)
+            assert result.get("_source").get("group") == "group_a"
+
+        for id in ids_b:
+            result = es_client.conn.get(index=es_client.index,
+                                        doc_type="annotation",
+                                        id=id)
+            assert result.get("_source").get("group") == "group_b"
+
     def test_it_returns_errored_annotation_ids(self, batch_indexer, factories):
         annotations = factories.Annotation.create_batch(3)
         expected_errored_ids = set([annotations[0].id, annotations[2].id])
