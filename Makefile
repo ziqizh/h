@@ -34,20 +34,20 @@ dev: build/manifest.json .pydeps
 docker:
 	git archive HEAD | docker build -t hypothesis/hypothesis:$(DOCKER_TAG) -
 
-# Run docker image built with `docker` task
+# Run docker image built with `docker` task.
+# This command is intended only for use in development and assumes that the
+# service containers (Postgres, Elasticsearch etc.) have been run using
+# docker-compose.
 .PHONY: run-docker
 run-docker:
-	$(eval RABBITMQ_CONTAINER ?= h_rabbit_1)
-	$(eval PG_CONTAINER ?= h_postgres_1)
-	$(eval ES1_CONTAINER ?= h_elasticsearchold_1)
-	$(eval ES_CONTAINER ?= h_elasticsearch_1)
+	$(eval RABBITMQ_CONTAINER ?= rabbit)
+	$(eval PG_CONTAINER ?= postgres)
+	$(eval ES1_CONTAINER ?= elasticsearchold)
+	$(eval ES_CONTAINER ?= elasticsearch)
 	docker run \
-		--link $(RABBITMQ_CONTAINER) \
-		--link $(PG_CONTAINER) \
-		--link $(ES_CONTAINER) \
-		--link $(ES1_CONTAINER) \
 		--net h_default \
 		-e "APP_URL=http://localhost:5000" \
+		-e "AUTHORITY=localhost" \
 		-e "BROKER_URL=amqp://guest:guest@$(RABBITMQ_CONTAINER):5672//" \
 		-e "DATABASE_URL=postgresql://postgres@$(PG_CONTAINER)/postgres" \
 		-e "ELASTICSEARCH_HOST=http://$(ES1_CONTAINER):9200" \
